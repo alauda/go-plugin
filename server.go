@@ -491,7 +491,7 @@ func Serve(opts *ServeConfig) {
 }
 
 func serverListener() (net.Listener, error) {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == "windows" || os.Getenv("PLUGIN_HOST") != "" {
 		return serverListener_tcp()
 	}
 
@@ -501,6 +501,7 @@ func serverListener() (net.Listener, error) {
 func serverListener_tcp() (net.Listener, error) {
 	envMinPort := os.Getenv("PLUGIN_MIN_PORT")
 	envMaxPort := os.Getenv("PLUGIN_MAX_PORT")
+	envBind := os.Getenv("PLUGIN_HOST")
 
 	var minPort, maxPort int64
 	var err error
@@ -529,8 +530,13 @@ func serverListener_tcp() (net.Listener, error) {
 		return nil, fmt.Errorf("PLUGIN_MIN_PORT value of %d is greater than PLUGIN_MAX_PORT value of %d", minPort, maxPort)
 	}
 
+	if envBind == "" {
+		envBind = "127.0.0.1"
+	}
+
 	for port := minPort; port <= maxPort; port++ {
-		address := fmt.Sprintf("127.0.0.1:%d", port)
+
+		address := fmt.Sprintf("%s:%d", envBind, port)
 		listener, err := net.Listen("tcp", address)
 		if err == nil {
 			return listener, nil
